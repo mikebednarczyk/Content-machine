@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator tematów - Sovea</title>
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 50px 20px; color: #1c1e21; }
+        .card { background: white; width: 100%; max-width: 500px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); overflow: hidden; }
+        .header { padding: 30px 30px 20px; text-align: center; }
+        .header h2 { margin: 0 0 10px; font-size: 22px; color: #111; }
+        .header p { margin: 0; color: #65676b; font-size: 14px; }
+        
+        /* Zakładki UX */
+        .tabs-container { display: flex; background: #f0f2f5; margin: 0 30px 20px; border-radius: 10px; padding: 4px; }
+        .tab { flex: 1; text-align: center; padding: 10px; font-size: 14px; font-weight: 600; color: #65676b; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; }
+        .tab.active { background: white; color: #0066cc; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        .form-content { padding: 0 30px 30px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #444; }
+        
+        input[type="number"], textarea { width: 100%; padding: 12px; border: 1px solid #ccd0d5; border-radius: 8px; box-sizing: border-box; font-family: inherit; }
+        input:focus, textarea:focus { border-color: #0066cc; outline: none; }
+        textarea { resize: vertical; min-height: 100px; }
+        
+        .file-drop { border: 2px dashed #ccd0d5; border-radius: 8px; padding: 30px; text-align: center; background: #fafbfc; cursor: pointer; }
+        .file-drop:hover { border-color: #0066cc; background: #f0f7ff; }
+        .file-drop p { margin: 0; font-size: 14px; color: #65676b; }
+        .file-drop span { color: #0066cc; font-weight: 600; }
+        
+        .btn-submit { width: 100%; padding: 14px; background: #0066cc; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .btn-submit:hover { background: #0052a3; }
+        .btn-submit:disabled { background: #ccd0d5; cursor: not-allowed; }
+
+        .hidden { display: none; }
+        #status-msg { margin-top: 15px; text-align: center; font-size: 14px; font-weight: 600; }
+        .success { color: #2e7d32; }
+        .error { color: #c62828; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <h2>Sovea - Content AI</h2>
+        <p>Wybierz tryb pracy maszyny blogowej.</p>
+    </div>
+
+    <div class="tabs-container">
+        <div class="tab active" id="tab-auto" onclick="switchMode('auto')">⚡ Autopilot</div>
+        <div class="tab" id="tab-custom" onclick="switchMode('custom')">🛠️ Custom (Własne wytyczne)</div>
+    </div>
+
+    <div class="form-content">
+        <form id="ai-form">
+            <div class="input-group">
+                <label>Liczba tematów do wygenerowania</label>
+                <input type="number" id="target_count" value="4" min="1" required>
+            </div>
+
+            <!-- Custom Section -->
+            <div id="custom-section" class="hidden">
+                <div class="input-group">
+                    <label>Twoje wytyczne (Prompt)</label>
+                    <textarea id="custom_prompt" placeholder="np. Skup się na firmach logistycznych..."></textarea>
+                </div>
+                
+                <div class="input-group">
+                    <label>Baza wiedzy (Raport/E-book)</label>
+                    <div class="file-drop" onclick="document.getElementById('file_upload').click()">
+                        <p><span id="file-name">Kliknij, aby wgrać plik</span> (PDF, DOCX, TXT)</p>
+                        <input type="file" id="file_upload" class="hidden" accept=".pdf,.docx,.txt">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto Section Info -->
+            <div id="auto-section">
+                <div class="input-group">
+                    <p style="font-size: 13px; color: #65676b; background: #f0f2f5; padding: 12px; border-radius: 8px; margin: 0;">
+                        🤖 <strong>Tryb Autopilot:</strong> System zignoruje pliki i prompter. Automatycznie przeskanuje najnowsze trendy RSS i domyślne słowa kluczowe.
+                    </p>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="submit-btn">Uruchom Maszynę</button>
+            <div id="status-msg"></div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentMode = 'auto';
+
+    // Obsługa zakładek (UX)
+    function switchMode(mode) {
+        currentMode = mode;
+        document.getElementById('tab-auto').classList.remove('active');
+        document.getElementById('tab-custom').classList.remove('active');
+        document.getElementById('tab-' + mode).classList.add('active');
+
+        if(mode === 'custom') {
+            document.getElementById('custom-section').classList.remove('hidden');
+            document.getElementById('auto-section').classList.add('hidden');
+        } else {
+            document.getElementById('custom-section').classList.add('hidden');
+            document.getElementById('auto-section').classList.remove('hidden');
+        }
+    }
+
+    // Wyświetlanie nazwy pliku po wybraniu
+    document.getElementById('file_upload').addEventListener('change', function(e) {
+        const fileName = e.target.files[0] ? e.target.files[0].name : "Kliknij, aby wgrać plik";
+        document.getElementById('file-name').innerText = fileName;
+    });
+
+    // Obsługa wysyłki do n8n
+    document.getElementById('ai-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('submit-btn');
+        const statusMsg = document.getElementById('status-msg');
+        
+        // 🚨 TUTAJ WKLEJASZ LINK DO WEBHOOKA Z N8N DLA DANEGO KLIENTA 🚨
+        const WEBHOOK_URL = "https://n8n.techmarketer.pl/webhook/6266e766-67ef-4941-b62f-30865505d495"; 
+
+        btn.disabled = true;
+        btn.innerText = "Przetwarzanie (to może potrwać)...";
+        statusMsg.innerText = "";
+        statusMsg.className = "";
+
+        // Pakowanie danych (FormData obsługuje pliki)
+        const formData = new FormData();
+        formData.append('mode', currentMode);
+        formData.append('target_count', document.getElementById('target_count').value);
+        
+        if (currentMode === 'custom') {
+            formData.append('custom_prompt', document.getElementById('custom_prompt').value);
+            const fileInput = document.getElementById('file_upload');
+            if (fileInput.files.length > 0) {
+                formData.append('file_upload', fileInput.files[0]);
+            }
+        }
+
+        try {
+            const response = await fetch(WEBHOOK_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                statusMsg.innerText = "Zlecenie przyjęte! Zrób sobie kawę i tematy bd gotowe.";
+                statusMsg.className = "success";
+            } else {
+                throw new Error("Błąd sieci");
+            }
+        } catch (error) {
+            statusMsg.innerText = "Wystąpił błąd komunikacji z serwerem n8n. Sprawdź Webhook URL lub ustawienia CORS.";
+            statusMsg.className = "error";
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Uruchom Maszynę";
+        }
+    });
+</script>
+
+</body>
+</html>
